@@ -124,7 +124,7 @@ export function DashboardClient() {
                           {expense.source}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right font-mono font-medium tracking-tight">
+                      <TableCell className="text-right font-medium tracking-tight">
                         {formatIDR(expense.amount)}
                       </TableCell>
                     </TableRow>
