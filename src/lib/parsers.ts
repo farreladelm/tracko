@@ -71,13 +71,15 @@ export function parseReceipt(body: string, sender: string): Expense | null {
       }
       
       // Date: "Tgl & Jam Transaksi 17 Mar 2026 18:10:50 WIB"
-      const dateMatch = plainText.match(/Tgl & Jam Transaksi\s+([\d]{1,2}\s+[A-Za-z]+\s+[\d]{4}\s+[\d]{2}:[\d]{2}:[\d]{2})/i);
+      // Handle both '&' and HTML-escaped '&amp;'
+      const dateMatch = plainText.match(/Tgl\s*(?:&|&amp;)?\s*Jam Transaksi\s+([\d]{1,2}\s+[A-Za-z]+\s+[\d]{4}\s+[\d]{2}:[\d]{2}:[\d]{2})/i);
       if (dateMatch) {
         parsedDate = new Date(dateMatch[1].trim());
       }
       
       // Merchant: "Farrel Adel Mohammad bluSpending Warung Gunarso Surabaya (Kota) Nominal Tagihan"
-      const merchantMatch = plainText.match(/bluSpending\s+(.*?)\s+Nominal Tagihan/i);
+      // or "Farrel Adel Mohammad bluAccount KINTONO BADMINTON HALL SURABAYA Nominal Tagihan"
+      const merchantMatch = plainText.match(/(?:bluSpending|bluAccount)\s+(.*?)\s+(?:Nominal Tagihan|Total)/i);
       if (merchantMatch) {
         let rawMerchant = merchantMatch[1].trim();
         // Remove known trailing city/bracket terms if present
