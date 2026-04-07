@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import { auth } from '@/auth';
 import { parseReceipt, Expense } from './parsers';
 
-export async function fetchRecentReceipts(): Promise<Expense[]> {
+export async function fetchRecentReceipts(limit: number = 50): Promise<Expense[]> {
   const session = await auth();
   if (!session?.accessToken) {
     throw new Error("Not authenticated or missing Gmail access token.");
@@ -17,7 +17,7 @@ export async function fetchRecentReceipts(): Promise<Expense[]> {
   const res = await gmail.users.messages.list({
     userId: 'me',
     q: '(from:noreply.livin@bankmandiri.co.id OR from:receipts@blubybcadigital.id) QRIS',
-    maxResults: 15
+    maxResults: limit
   });
 
   const messages = res.data.messages || [];
