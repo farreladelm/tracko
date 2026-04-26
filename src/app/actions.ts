@@ -1,9 +1,13 @@
 "use server";
 
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
 import { fetchRecentReceipts } from "@/lib/gmail";
 import { Expense } from "@/lib/parsers";
+
+export async function logoutAction() {
+  await signOut({ redirectTo: "/" });
+}
 
 export async function syncReceiptsAction(): Promise<{ success: boolean; data?: Expense[]; error?: string }> {
   try {
