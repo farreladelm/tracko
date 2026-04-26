@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const ExpenseSchema = z.object({
+  messageId: z.string().min(1),
   transactionDate: z.date(),
   merchantName: z.string().min(1),
   amount: z.number().positive(),
@@ -14,7 +15,7 @@ export type Expense = z.infer<typeof ExpenseSchema>;
  * Parses raw HTML or text from an email body to extract QRIS transaction details.
  * This function uses flexible regex matching to accommodate varying bank email formats.
  */
-export function parseReceipt(body: string, sender: string): Expense | null {
+export function parseReceipt(body: string, sender: string, messageId: string): Expense | null {
   try {
     const isMandiri = sender.toLowerCase().includes("mandiri");
     const isBlu = sender.toLowerCase().includes("blu") || sender.toLowerCase().includes("bcadigital");
@@ -107,6 +108,7 @@ export function parseReceipt(body: string, sender: string): Expense | null {
     }
 
     const data: Expense = {
+      messageId: messageId,
       transactionDate: isNaN(parsedDate.getTime()) ? new Date() : parsedDate,
       merchantName: merchantName,
       amount: amount,
