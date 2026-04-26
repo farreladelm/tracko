@@ -16,11 +16,11 @@ import { exportToCsv } from "@/lib/csv";
 import { Expense } from "@/lib/parsers";
 import { Download, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 
-export function DashboardClient() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Expense[] }) {
+  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [synced, setSynced] = useState(false);
+  const [synced, setSynced] = useState(initialExpenses.length > 0);
 
   const handleSync = async () => {
     setLoading(true);

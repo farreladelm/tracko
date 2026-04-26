@@ -1,9 +1,19 @@
 import { auth, signIn, signOut } from "@/auth"
 import { Button } from "@/components/ui/button"
 import { DashboardClient } from "@/components/dashboard-client"
+import { getTransactionsAction } from "@/app/actions"
 
 export default async function Home() {
   const session = await auth()
+  
+  // Fetch initial transactions if user is logged in
+  let initialExpenses = []
+  if (session) {
+    const result = await getTransactionsAction()
+    if (result.success && result.data) {
+      initialExpenses = result.data
+    }
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 md:p-24 bg-zinc-50 dark:bg-zinc-950 font-sans">
@@ -49,7 +59,7 @@ export default async function Home() {
               </form>
             </div>
 
-            <DashboardClient />
+            <DashboardClient initialExpenses={initialExpenses} />
             
           </div>
         ) : (
