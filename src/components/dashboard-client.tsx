@@ -47,8 +47,8 @@ export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Ex
   // Safe formatting for the date, allowing for strings passed from Server Action
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
-    if (isNaN(d.getTime())) return "Unknown Date";
-    return new Intl.DateTimeFormat("en-US", {
+    if (isNaN(d.getTime())) return "Tanggal Tidak Diketahui";
+    return new Intl.DateTimeFormat("id-ID", {
       month: "short", day: "numeric", year: "numeric"
     }).format(d);
   };
@@ -62,21 +62,21 @@ export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Ex
   };
 
   return (
-    <div className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
       <Card className="border shadow-lg bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6">
           <div className="space-y-1">
-            <CardTitle className="text-2xl font-bold tracking-tight">Recent Transactions</CardTitle>
+            <CardTitle className="text-2xl font-bold tracking-tight">Transaksi Terakhir</CardTitle>
             <CardDescription className="text-zinc-500">
-              Sync and export your QRIS receipts from Gmail.
+              Sinkronisasi dan ekspor struk QRIS Anda dari Gmail.
             </CardDescription>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
             <Button 
               variant="outline" 
               onClick={handleExport} 
               disabled={expenses.length === 0 || loading}
-              className="group transition-all"
+              className="flex-1 sm:flex-none group transition-all"
             >
               <Download className="mr-2 h-4 w-4 group-hover:-translate-y-0.5 transition-transform" />
               CSV
@@ -84,10 +84,10 @@ export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Ex
             <Button 
               onClick={handleSync} 
               disabled={loading}
-              className="bg-black hover:bg-zinc-800 text-white dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+              className="flex-1 sm:flex-none bg-black hover:bg-zinc-800 text-white dark:bg-white dark:text-black dark:hover:bg-zinc-200 group transition-all"
             >
-              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? "Syncing..." : "Sync Gmail"}
+              <RefreshCw className={`mr-2 h-4 w-4 transition-transform ${loading ? 'animate-spin' : 'group-hover:-translate-y-0.5'}`} />
+              {loading ? "Sinkronisasi..." : "Sinkronisasi Gmail"}
             </Button>
           </div>
         </CardHeader>
@@ -103,10 +103,10 @@ export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Ex
             <Table>
               <TableHeader className="bg-zinc-50 dark:bg-zinc-900/50">
                 <TableRow>
-                  <TableHead className="w-[120px]">Date</TableHead>
+                  <TableHead className="w-[120px]">Tanggal</TableHead>
                   <TableHead>Merchant</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Sumber</TableHead>
+                  <TableHead className="text-right">Jumlah</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -133,8 +133,8 @@ export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Ex
                   <TableRow>
                     <TableCell colSpan={4} className="h-32 text-center text-zinc-500">
                       {synced && !loading 
-                        ? "No recent QRIS receipts found. Try making a transaction!"
-                        : "Click 'Sync Gmail' to fetch your latest QRIS receipts."}
+                        ? "Tidak ada struk QRIS baru. Coba lakukan transaksi!"
+                        : "Klik 'Sinkronisasi Gmail' untuk mengambil struk QRIS terbaru Anda."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -145,7 +145,7 @@ export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Ex
           {synced && !loading && expenses.length > 0 && (
             <div className="mt-4 flex items-center justify-end text-sm text-green-600 dark:text-green-400 font-medium">
               <CheckCircle2 className="mr-1.5 h-4 w-4" />
-              Successfully synced {expenses.length} receipt{expenses.length !== 1 ? 's' : ''}
+              Berhasil sinkronisasi {expenses.length} struk
             </div>
           )}
         </CardContent>
