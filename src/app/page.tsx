@@ -2,16 +2,20 @@ import { auth, signIn, signOut } from "@/auth"
 import { Button } from "@/components/ui/button"
 import { DashboardClient } from "@/components/dashboard-client"
 import { getTransactionsAction } from "@/app/actions"
+import { SummaryCards } from "@/components/dashboard/SummaryCards"
+import { SummaryCardsSkeleton } from "@/components/dashboard/SummaryCardsSkeleton"
+import { Suspense } from "react"
+import { Expense } from "@/lib/parsers"
 
 export default async function Home() {
   const session = await auth()
   
   // Fetch initial transactions if user is logged in
-  let initialExpenses = []
+  let initialExpenses: Expense[] = []
   if (session) {
     const result = await getTransactionsAction()
     if (result.success && result.data) {
-      initialExpenses = result.data
+      initialExpenses = result.data as Expense[]
     }
   }
 
@@ -59,6 +63,10 @@ export default async function Home() {
               </form>
             </div>
 
+            <Suspense fallback={<SummaryCardsSkeleton />}>
+              <SummaryCards />
+            </Suspense>
+
             <DashboardClient initialExpenses={initialExpenses} />
             
           </div>
@@ -80,3 +88,4 @@ export default async function Home() {
     </main>
   )
 }
+
