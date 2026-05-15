@@ -40,8 +40,16 @@ export async function syncReceiptsAction(): Promise<{ success: boolean; data?: E
     });
 
     return { success: true, data: allTransactions as Expense[] };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to sync receipts:", error);
+    
+    if (error.message === "needs_reauth") {
+      return { 
+        success: false, 
+        error: "needs_reauth",
+      };
+    }
+
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "An unknown error occurred while fetching receipts." 

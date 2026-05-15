@@ -35,6 +35,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = user.id
       }
       return session
-    }
+    },
+    async signIn({ account }) {
+      if (account?.provider === "google" && account.access_token) {
+        // Update the account with fresh tokens every time the user signs in
+        await prisma.account.update({
+          where: {
+            provider_providerAccountId: {
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+            },
+          },
+          data: {
+            access_token: account.access_token,
+            refresh_token: account.refresh_token,
+            expires_at: account.expires_at,
+          },
+        });
+      }
+      return true;
+    },
   }
 })
