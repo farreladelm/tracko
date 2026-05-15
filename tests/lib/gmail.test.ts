@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { auth } from '@/auth'
 import { google } from 'googleapis'
 import { EventEmitter } from 'events'
+import { Account } from '@prisma/client'
 
 // Mock dependencies
 vi.mock('next-auth')
@@ -56,25 +57,34 @@ describe('fetchRecentReceipts - Token Refresh', () => {
     providerAccountId: 'google-id-123',
     access_token: 'old-access-token',
     refresh_token: 'refresh-token',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    type: 'oauth',
+    scope: 'scope',
+    token_type: 'Bearer',
+    id_token: null,
+    session_state: null,
+    expires_at: null,
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(auth).mockResolvedValue(mockSession as any)
+    vi.mocked(auth).mockResolvedValue(mockSession as unknown as never)
   })
 
   it('should update database when oauth2Client emits "tokens" event', async () => {
-    vi.mocked(prisma.account.findFirst).mockResolvedValue(mockAccount as any)
+    vi.mocked(prisma.account.findFirst).mockResolvedValue(mockAccount as Account)
 
     const mockOAuth2Client = new MockOAuth2Client()
     vi.mocked(google.auth.OAuth2).mockImplementation(class {
       constructor() {
         return mockOAuth2Client
       }
-    } as any)
+    } as unknown as typeof google.auth.OAuth2)
 
     // Trigger the function
     await fetchRecentReceipts()
+
 
     // Simulate "tokens" event
     const newTokens = {
@@ -99,14 +109,14 @@ describe('fetchRecentReceipts - Token Refresh', () => {
   })
 
   it('should throw "needs_reauth" when Gmail API returns "invalid_grant"', async () => {
-    vi.mocked(prisma.account.findFirst).mockResolvedValue(mockAccount as any)
+    vi.mocked(prisma.account.findFirst).mockResolvedValue(mockAccount as Account)
     
     const mockOAuth2Client = new MockOAuth2Client()
     vi.mocked(google.auth.OAuth2).mockImplementation(class {
       constructor() {
         return mockOAuth2Client
       }
-    } as any)
+    } as unknown as typeof google.auth.OAuth2)
 
     // Mock Gmail API to throw invalid_grant
     mockMessagesList.mockRejectedValueOnce({

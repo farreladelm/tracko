@@ -57,8 +57,12 @@ export async function fetchRecentReceipts(limit: number = 50): Promise<Expense[]
       q: '(from:noreply.livin@bankmandiri.co.id OR from:receipts@blubybcadigital.id) QRIS',
       maxResults: limit
     });
-  } catch (error: any) {
-    if (error.response?.data?.error === 'invalid_grant' || error.message?.includes('invalid_grant')) {
+  } catch (error: unknown) {
+    const errorData = (error as { response?: { data?: { error?: string } } });
+    if (
+      errorData.response?.data?.error === 'invalid_grant' || 
+      (error instanceof Error && error.message?.includes('invalid_grant'))
+    ) {
       throw new Error("needs_reauth");
     }
     throw error;
