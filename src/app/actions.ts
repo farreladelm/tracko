@@ -75,3 +75,21 @@ export async function getTransactionsAction(): Promise<{ success: boolean; data?
     return { success: false, error: "Failed to load transactions from database." };
   }
 }
+
+export async function wipeAllTransactionsAction(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    await prisma.transaction.deleteMany({
+      where: { userId: session.user.id },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to wipe transactions:", error);
+    return { success: false, error: "Failed to delete transactions from database." };
+  }
+}
