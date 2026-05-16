@@ -78,6 +78,9 @@ export async function getTransactionsAction(): Promise<{ success: boolean; data?
 
 export async function wipeAllTransactionsAction(): Promise<{ success: boolean; error?: string }> {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return { success: false, error: "Forbidden in production" };
+    }
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
