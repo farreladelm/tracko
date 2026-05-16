@@ -33,7 +33,11 @@ export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Ex
       setExpenses(result.data);
       setSynced(true);
     } else {
-      setError(result.error || "Failed to fetch receipts.");
+      if (result.error === "needs_reauth") {
+        setError("Sesi Google Anda telah berakhir. Silakan keluar dan masuk kembali untuk menghubungkan ulang akun Gmail Anda.");
+      } else {
+        setError(result.error || "Gagal mengambil struk.");
+      }
     }
     setLoading(false);
   };

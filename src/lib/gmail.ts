@@ -23,6 +23,25 @@ export async function fetchRecentReceipts(limit: number = 50): Promise<Expense[]
     process.env.AUTH_GOOGLE_SECRET
   );
   
+  // Listen for token refresh events and save to DB
+  oauth2Client.on('tokens', async (tokens) => {
+    if (tokens.access_token) {
+      await prisma.account.update({
+        where: {
+          provider_providerAccountId: {
+            provider: "google",
+            providerAccountId: account.providerAccountId,
+          },
+        },
+        data: {
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token || account.refresh_token,
+          expires_at: tokens.expiry_date ? Math.floor(tokens.expiry_date / 1000) : undefined,
+        },
+      });
+    }
+  });
+
   oauth2Client.setCredentials({ 
     access_token: account.access_token,
     refresh_token: account.refresh_token,
@@ -31,11 +50,23 @@ export async function fetchRecentReceipts(limit: number = 50): Promise<Expense[]
   const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
   
   // Search for emails containing "QRIS" from either bank
-  const res = await gmail.users.messages.list({
-    userId: 'me',
-    q: '(from:noreply.livin@bankmandiri.co.id OR from:receipts@blubybcadigital.id) QRIS',
-    maxResults: limit
-  });
+  let res;
+  try {
+    res = await gmail.users.messages.list({
+      userId: 'me',
+      q: '(from:noreply.livin@bankmandiri.co.id OR from:receipts@blubybcadigital.id) QRIS',
+      maxResults: limit
+    });
+  } catch (error: unknown) {
+    const errorData = (error as { response?: { data?: { error?: string } } });
+    if (
+      errorData.response?.data?.error === 'invalid_grant' || 
+      (error instanceof Error && error.message?.includes('invalid_grant'))
+    ) {
+      throw new Error("needs_reauth");
+    }
+    throw error;
+  }
 
   const messages = res.data.messages || [];
   if (messages.length === 0) return [];

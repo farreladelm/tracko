@@ -116,7 +116,7 @@ export default function PrivacyPage() {
               </div>
               <div className="space-y-2">
                 <h3 className="font-bold">1. Login Google</h3>
-                <p className="text-sm text-zinc-500">Anda masuk dengan Google — Tracko meminta akses Gmail "read-only".</p>
+                <p className="text-sm text-zinc-500">Anda masuk dengan Google — Tracko meminta akses Gmail &quot;read-only&quot;.</p>
               </div>
             </div>
             <div className="flex flex-col items-center text-center space-y-4">
