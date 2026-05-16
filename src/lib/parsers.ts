@@ -12,6 +12,36 @@ export const ExpenseSchema = z.object({
 export type Expense = z.infer<typeof ExpenseSchema>;
 
 /**
+ * Converts Indonesian month names/abbreviations to English for Date parsing.
+ */
+function normalizeIndonesianDate(dateStr: string): string {
+  const monthMap: Record<string, string> = {
+    'jan': 'Jan', 'januari': 'Jan',
+    'feb': 'Feb', 'pebruari': 'Feb', 'februari': 'Feb',
+    'mar': 'Mar', 'maret': 'Mar',
+    'apr': 'Apr', 'april': 'Apr',
+    'mei': 'May',
+    'jun': 'Jun', 'juni': 'Jun',
+    'jul': 'Jul', 'juli': 'Jul',
+    'agt': 'Aug', 'agustus': 'Aug',
+    'sep': 'Sep', 'september': 'Sep',
+    'okt': 'Oct', 'oktober': 'Oct',
+    'nop': 'Nov', 'nov': 'Nov', 'nopember': 'Nov', 'november': 'Nov',
+    'des': 'Dec', 'desember': 'Dec'
+  };
+
+  let normalized = dateStr.toLowerCase();
+  for (const [indo, eng] of Object.entries(monthMap)) {
+    // Use word boundaries to avoid partial matches
+    const regex = new RegExp(`\\b${indo}\\b`, 'g');
+    if (normalized.includes(indo)) {
+      normalized = normalized.replace(regex, eng);
+    }
+  }
+  return normalized;
+}
+
+/**
  * Parses raw HTML or text from an email body to extract QRIS transaction details.
  * This function uses flexible regex matching to accommodate varying bank email formats.
  */
@@ -49,7 +79,7 @@ export function parseReceipt(body: string, sender: string, messageId: string): E
       const timeMatch = plainText.match(/Jam\s+([\d]{2}:[\d]{2}:[\d]{2})/i);
       if (dateMatch) {
          const dateString = `${dateMatch[1]} ${timeMatch ? timeMatch[1] : '00:00:00'}`;
-         parsedDate = new Date(dateString);
+         parsedDate = new Date(normalizeIndonesianDate(dateString));
       }
 
       // Merchant: "Penerima SUPERINDO MKN QR - QRIS Surabaya (Kot - ID Tanggal"
@@ -75,7 +105,7 @@ export function parseReceipt(body: string, sender: string, messageId: string): E
       // Handle both '&' and HTML-escaped '&amp;'
       const dateMatch = plainText.match(/Tgl\s*(?:&|&amp;)?\s*Jam Transaksi\s+([\d]{1,2}\s+[A-Za-z]+\s+[\d]{4}\s+[\d]{2}:[\d]{2}:[\d]{2})/i);
       if (dateMatch) {
-        parsedDate = new Date(dateMatch[1].trim());
+        parsedDate = new Date(normalizeIndonesianDate(dateMatch[1].trim()));
       }
       
       // Merchant: "Farrel Adel Mohammad bluSpending Warung Gunarso Surabaya (Kota) Nominal Tagihan"

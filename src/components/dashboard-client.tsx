@@ -11,10 +11,10 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { syncReceiptsAction } from "@/app/actions";
+import { syncReceiptsAction, wipeAllTransactionsAction } from "@/app/actions";
 import { exportToCsv } from "@/lib/csv";
 import { Expense } from "@/lib/parsers";
-import { Download, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Download, RefreshCw, AlertCircle, CheckCircle2, Trash2 } from "lucide-react";
 
 export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Expense[] }) {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
@@ -38,6 +38,21 @@ export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Ex
       } else {
         setError(result.error || "Gagal mengambil struk.");
       }
+    }
+    setLoading(false);
+  };
+
+  const handleWipe = async () => {
+    if (!confirm("Hapus semua transaksi? Tindakan ini tidak dapat dibatalkan.")) return;
+    
+    setLoading(true);
+    setError(null);
+    const result = await wipeAllTransactionsAction();
+    if (result.success) {
+      setExpenses([]);
+      setSynced(false);
+    } else {
+      setError(result.error || "Gagal menghapus data.");
     }
     setLoading(false);
   };
@@ -76,6 +91,15 @@ export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Ex
             </CardDescription>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Button 
+              variant="destructive" 
+              onClick={handleWipe} 
+              disabled={expenses.length === 0 || loading}
+              className="flex-1 sm:flex-none transition-all"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Wipe All
+            </Button>
             <Button 
               variant="outline" 
               onClick={handleExport} 
