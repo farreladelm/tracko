@@ -30,15 +30,8 @@ function normalizeIndonesianDate(dateStr: string): string {
     'des': 'Dec', 'desember': 'Dec'
   };
 
-  let normalized = dateStr.toLowerCase();
-  for (const [indo, eng] of Object.entries(monthMap)) {
-    // Use word boundaries to avoid partial matches
-    const regex = new RegExp(`\\b${indo}\\b`, 'g');
-    if (normalized.includes(indo)) {
-      normalized = normalized.replace(regex, eng);
-    }
-  }
-  return normalized;
+  const pattern = new RegExp(`\\b(${Object.keys(monthMap).join('|')})\\b`, 'gi');
+  return dateStr.replace(pattern, (matched) => monthMap[matched.toLowerCase()] || matched);
 }
 
 /**
@@ -79,7 +72,8 @@ export function parseReceipt(body: string, sender: string, messageId: string): E
       const timeMatch = plainText.match(/Jam\s+([\d]{2}:[\d]{2}:[\d]{2})/i);
       if (dateMatch) {
          const dateString = `${dateMatch[1]} ${timeMatch ? timeMatch[1] : '00:00:00'}`;
-         parsedDate = new Date(normalizeIndonesianDate(dateString));
+         const normalized = normalizeIndonesianDate(dateString);
+         parsedDate = new Date(normalized);
       }
 
       // Merchant: "Penerima SUPERINDO MKN QR - QRIS Surabaya (Kot - ID Tanggal"
@@ -105,7 +99,8 @@ export function parseReceipt(body: string, sender: string, messageId: string): E
       // Handle both '&' and HTML-escaped '&amp;'
       const dateMatch = plainText.match(/Tgl\s*(?:&|&amp;)?\s*Jam Transaksi\s+([\d]{1,2}\s+[A-Za-z]+\s+[\d]{4}\s+[\d]{2}:[\d]{2}:[\d]{2})/i);
       if (dateMatch) {
-        parsedDate = new Date(normalizeIndonesianDate(dateMatch[1].trim()));
+        const normalized = normalizeIndonesianDate(dateMatch[1].trim());
+        parsedDate = new Date(normalized);
       }
       
       // Merchant: "Farrel Adel Mohammad bluSpending Warung Gunarso Surabaya (Kota) Nominal Tagihan"

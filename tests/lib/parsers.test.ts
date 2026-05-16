@@ -54,4 +54,22 @@ describe('parseReceipt - Date Parsing', () => {
       expect(result.transactionDate.getDate()).toBe(10)
     }
   })
+
+  it('should fallback to current date or handle malformed dates gracefully', () => {
+    const body = `
+      Nominal Transaksi Rp 10.000,00
+      Tanggal 32 InvalidMonth 2025 Jam 10:00:00 WIB
+      Penerima Alfamart
+    `
+    const sender = 'noreply.livin@bankmandiri.co.id'
+    const result = parseReceipt(body, sender, messageId)
+    
+    expect(result).not.toBeNull()
+    if (result) {
+      // The parsed date should fall back to something valid (not NaN)
+      // Since our parser does `new Date()` which can return Invalid Date if malformed,
+      // and we added isNaN(parsedDate.getTime()) fallback in parseReceipt.
+      expect(isNaN(result.transactionDate.getTime())).toBe(false)
+    }
+  })
 })

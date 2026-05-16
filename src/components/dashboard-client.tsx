@@ -90,7 +90,7 @@ export function DashboardClient({ initialExpenses = [] }: { initialExpenses?: Ex
               Sinkronisasi dan ekspor struk QRIS Anda dari Gmail.
             </CardDescription>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
             <Button 
               variant="destructive" 
               onClick={handleWipe} 
