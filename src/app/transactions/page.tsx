@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { createTransaction, deleteTransaction } from "@/app/actions/transactions";
+import { createTransaction, confirmTransactionForm, deleteTransactionForm } from "@/app/actions/transactions";
 import { Button } from "@/components/ui/button";
 
 export default async function TransactionsPage() {
@@ -93,29 +93,82 @@ export default async function TransactionsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border-sand)]">
-                  {user.transactions.map((t) => (
-                    <tr key={t.id} className="hover:bg-white/50 transition-colors">
-                      <td className="px-5 py-4 text-[var(--color-muted-clay)] whitespace-nowrap">
-                        {t.date.toLocaleDateString()}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-[var(--color-espresso-ink)]">{t.note}</span>
-                          {t.category && (
-                            <span className="text-xs text-[var(--color-muted-clay)] mt-0.5">{t.category.name}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-[var(--color-muted-clay)]">
-                        {t.account.name}
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <span className={`font-mono font-medium ${t.amount < 0 ? 'text-[var(--color-espresso-ink)]' : 'text-[var(--color-signal-green)]'}`}>
-                          {t.amount > 0 ? '+Rp ' : '-Rp '}{Math.abs(t.amount).toLocaleString('id-ID')}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {user.transactions.map((t) => {
+                    const isDraft = t.status === "DRAFT";
+
+                    if (isDraft) {
+                      return (
+                        <tr key={t.id} className="bg-amber-50/40 hover:bg-amber-50/60 transition-colors border-l-2 border-amber-500">
+                          <td className="px-5 py-4 text-[var(--color-muted-clay)] whitespace-nowrap">
+                            {t.date.toLocaleDateString()}
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-[var(--color-espresso-ink)] flex items-center gap-2">
+                                {t.note}
+                                <span className="text-[10px] font-bold tracking-wider uppercase bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
+                                  Pending Sync
+                                </span>
+                              </span>
+                              {t.category && (
+                                <span className="text-xs text-[var(--color-muted-clay)] mt-0.5">{t.category.name}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            <form action={confirmTransactionForm} className="flex items-center gap-2">
+                              <input type="hidden" name="transactionId" value={t.id} />
+                              <select required name="accountId" defaultValue={t.accountId} className="h-9 px-2 max-w-[150px] rounded-md bg-[var(--color-page-parchment)] border border-[var(--color-border-sand)] outline-none text-xs">
+                                {user.financialAccounts.map((acc) => (
+                                  <option key={acc.id} value={acc.id}>{acc.name}</option>
+                                ))}
+                              </select>
+                              <button type="submit" className="h-9 px-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium cursor-pointer transition-colors">
+                                Confirm
+                              </button>
+                            </form>
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <div className="flex flex-col items-end gap-1">
+                              <span className={`font-mono font-medium ${t.amount < 0 ? 'text-[var(--color-espresso-ink)]' : 'text-[var(--color-signal-green)]'}`}>
+                                {t.amount > 0 ? '+Rp ' : '-Rp '}{Math.abs(t.amount).toLocaleString('id-ID')}
+                              </span>
+                              <form action={deleteTransactionForm}>
+                                <input type="hidden" name="transactionId" value={t.id} />
+                                <button type="submit" className="text-xs text-rose-600 hover:text-rose-800 hover:underline cursor-pointer">
+                                  Discard
+                                </button>
+                              </form>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return (
+                      <tr key={t.id} className="hover:bg-white/50 transition-colors">
+                        <td className="px-5 py-4 text-[var(--color-muted-clay)] whitespace-nowrap">
+                          {t.date.toLocaleDateString()}
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-[var(--color-espresso-ink)]">{t.note}</span>
+                            {t.category && (
+                              <span className="text-xs text-[var(--color-muted-clay)] mt-0.5">{t.category.name}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-[var(--color-muted-clay)]">
+                          {t.account.name}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <span className={`font-mono font-medium ${t.amount < 0 ? 'text-[var(--color-espresso-ink)]' : 'text-[var(--color-signal-green)]'}`}>
+                            {t.amount > 0 ? '+Rp ' : '-Rp '}{Math.abs(t.amount).toLocaleString('id-ID')}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

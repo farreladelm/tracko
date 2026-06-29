@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { disconnectGmail } from "@/app/actions/gmail";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -40,7 +41,7 @@ export default async function SettingsPage() {
                   <span className="text-xs text-[var(--color-muted-clay)]">Syncing enabled</span>
                 </div>
               </div>
-              <form action="/api/auth/gmail/disconnect" method="POST">
+              <form action={disconnectGmail}>
                 <Button variant="outline" type="submit" className="text-[var(--color-espresso-ink)] border-[var(--color-border-sand)]">
                   Disconnect Gmail
                 </Button>
