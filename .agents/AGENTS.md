@@ -21,32 +21,16 @@ You must follow this exact sequence for all feature implementations, bug fixes, 
 1. **Proactive Research:** Explore the codebase and run read-only checks first.
 2. **Implementation & Phase Plan:** Create a detailed implementation plan and granular phase structure. Wait for explicit user approval before executing.
 3. **GitHub Issue**: Create an issue using the `gh` CLI based on `.agents/skills/forgejo-issue/SKILL.md` (adapted for GitHub).
-4. **Branching**: Checkout a new feature branch (`feature/your-feature`).
-5. **Phase Execution**: Stage commits sequentially for each phase. Keep a local `task.md` checklist (never commit `task.md`).
+4. **Branching**: Checkout a new branch using the name and prefix determined by the `branch-prefix` skill (e.g., `feat/your-feature`, `fix/bug-name`).
+5. **Phase Execution**: Stage commits sequentially for each phase. Keep a `task.md` checklist as a conversation artifact (e.g., written to the `<appDataDir>/brain/<conversation-id>/task.md` directory; never create `task.md` in the project root).
 6. **Proactive Verification**: Run syntax checks and tests before user check-ins.
 7. **Checkpoint**: Pause after each phase for user verification. Make checkpoint commits once approved.
-8. **Merge to Staging & Deploy**: Once the feature branch is complete and verified locally:
-   - Switch to your local `staging` branch, merge your feature branch, and push to origin:
-     ```bash
-     rtk git checkout staging
-     rtk git merge feature/your-feature
-     rtk git push origin staging
-     ```
-   - This automatically triggers the GitHub Actions workflow to deploy the changes to the test server.
-9. **Staging Verification**: Test and verify the feature's behavior on the test server.
-10. **Changelog**: Once verified on the test server, switch back to the feature branch, update `CHANGELOG.md` under `[Unreleased]` (based on `.agents/skills/changelog/SKILL.md`), and commit.
-11. **Pull Request to Main**: Open a Pull Request from your individual `feature/your-feature` branch into `main` using the `gh` CLI (based on `.agents/skills/pull-request/SKILL.md`). This keeps the PR diff clean and isolated.
-12. **Post-Merge Sync & Pruning**: Once the PR is merged into `main`:
+8. **Changelog**: Once verified locally, update `CHANGELOG.md` under `[Unreleased]` (based on `.agents/skills/changelog/SKILL.md`) if applicable, and commit.
+9. **Pull Request to Main**: Open a Pull Request from your individual feature branch into `main` using the `gh` CLI (based on `.agents/skills/pull-request/SKILL.md`).
+10. **Post-Merge Sync & Pruning**: Once the PR is merged into `main`:
     - Checkout `main` locally: `rtk git checkout main`
     - Pull the merged commit: `rtk git pull origin main`
-    - Delete the local feature branch: `rtk git branch -d feature/your-feature`
-    - Sync `staging` with the updated `main` branch to keep histories aligned:
-      ```bash
-      rtk git checkout staging
-      rtk git pull origin staging
-      rtk git merge main
-      rtk git push origin staging
-      ```
+    - Delete the local feature branch: `rtk git branch -d <your-branch>`
     - Finally, check out and leave the workspace on the `main` branch:
       ```bash
       rtk git checkout main
