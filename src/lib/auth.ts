@@ -47,6 +47,27 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user }) {
+      if (user?.id) {
+        const existingCategories = await prisma.category.findMany({
+          where: { userId: user.id }
+        });
+        const existingNames = new Set(existingCategories.map(c => c.name));
+        const defaultCategories = ["Makan dan Minum", "Jajan", "Bensin", "Belanja", "Lainnya"];
+        const missingCategories = defaultCategories.filter(name => !existingNames.has(name));
+
+        if (missingCategories.length > 0) {
+          await prisma.category.createMany({
+            data: missingCategories.map(name => ({
+              userId: user.id,
+              name,
+              type: "expense"
+            }))
+          });
+        }
+      }
+      return true;
+    },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;

@@ -51,9 +51,9 @@ export async function GET(req: Request) {
 
     let processedCount = 0;
 
-    // Build standard Gmail search query targeting only the supported senders in the last 1 day
+    // Build standard Gmail search query targeting only the supported senders in the last 3 days
     const senderQuery = SUPPORTED_BANKS.map(b => `from:${b.sender}`).join(" OR ");
-    const query = `newer_than:1d (${senderQuery})`;
+    const query = `newer_than:3d (${senderQuery})`;
     console.log("[cron/gmail-sync] Gmail search query:", query);
 
     for (const cred of credentials) {
@@ -64,6 +64,25 @@ export async function GET(req: Request) {
         if (cred.user.financialAccounts.length === 0) {
           console.log(`[cron/gmail-sync] User ${cred.userId} has no financial accounts. Skipping.`);
           continue; 
+        }
+
+        // Fallback Category Seeding Check
+        const existingCategories = await prisma.category.findMany({
+          where: { userId: cred.userId }
+        });
+        const existingNames = new Set(existingCategories.map(c => c.name));
+        const defaultCategories = ["Makan dan Minum", "Jajan", "Bensin", "Belanja", "Lainnya"];
+        const missingCategories = defaultCategories.filter(name => !existingNames.has(name));
+
+        if (missingCategories.length > 0) {
+          console.log(`[cron/gmail-sync] Seeding missing default categories for user ${cred.userId}:`, missingCategories);
+          await prisma.category.createMany({
+            data: missingCategories.map(name => ({
+              userId: cred.userId,
+              name,
+              type: "expense"
+            }))
+          });
         }
 
         console.log("[cron/gmail-sync] Decrypting refresh token...");
@@ -135,8 +154,13 @@ export async function GET(req: Request) {
               amount: { type: Type.NUMBER, description: "The transaction amount (positive number)" },
               merchant: { type: Type.STRING, description: "The name of the merchant or sender" },
               date: { type: Type.STRING, description: "The date of the transaction in ISO format (YYYY-MM-DD)" },
+              category: {
+                type: Type.STRING,
+                enum: ["Makan dan Minum", "Jajan", "Bensin", "Belanja", "Lainnya"],
+                description: "The most appropriate category for this transaction expense"
+              }
             },
-            required: ["isTransaction", "amount", "merchant", "date"],
+            required: ["isTransaction", "amount", "merchant", "date", "category"],
           };
 
           let response;
@@ -178,6 +202,11 @@ export async function GET(req: Request) {
                   console.log(`[cron/gmail-sync] Account match found: ${targetAccount.name}`);
                 }
 
+                // Look up the category ID from the database
+                const category = await prisma.category.findFirst({
+                  where: { name: extracted.category, userId: cred.userId }
+                });
+
                 // 3. Save to database as DRAFT (do not update balance yet) and mark email as processed
                 console.log("[cron/gmail-sync] Creating transaction in database and marking email as processed...");
                 await prisma.$transaction([
@@ -185,6 +214,7 @@ export async function GET(req: Request) {
                     data: {
                       userId: cred.userId,
                       accountId: targetAccount.id,
+                      categoryId: category?.id || null,
                       amount: -extracted.amount, // Representing expense as negative
                       note: extracted.merchant,
                       date: new Date(extracted.date),
