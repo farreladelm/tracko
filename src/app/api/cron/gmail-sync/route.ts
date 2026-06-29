@@ -67,17 +67,21 @@ export async function GET(req: Request) {
         }
 
         // Fallback Category Seeding Check
-        const categoryCount = await prisma.category.count({ where: { userId: cred.userId } });
-        if (categoryCount === 0) {
-          console.log(`[cron/gmail-sync] Seeding default categories for user ${cred.userId}...`);
-          const defaultCategories = ["Makan dan Minum", "Jajan", "Bensin", "Belanja", "Lainnya"];
-          await prisma.category.createMany({
-            data: defaultCategories.map(name => ({
-              userId: cred.userId,
-              name,
-              type: "expense"
-            }))
+        const defaultCategories = ["Makan dan Minum", "Jajan", "Bensin", "Belanja", "Lainnya"];
+        for (const name of defaultCategories) {
+          const exists = await prisma.category.findFirst({
+            where: { name, userId: cred.userId }
           });
+          if (!exists) {
+            console.log(`[cron/gmail-sync] Seeding category "${name}" for user ${cred.userId}...`);
+            await prisma.category.create({
+              data: {
+                userId: cred.userId,
+                name,
+                type: "expense"
+              }
+            });
+          }
         }
 
         console.log("[cron/gmail-sync] Decrypting refresh token...");
