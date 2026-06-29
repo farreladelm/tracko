@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { decrypt } from "@/lib/encryption";
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { matchLocalTemplate } from "@/lib/gmail-templates";
+import { matchLocalTemplate, matchDynamicPatterns } from "@/lib/gmail-templates";
 import {
   getGmailClient,
   fetchRecentBankEmails,
@@ -103,6 +103,9 @@ export async function GET(req: Request) {
         const messages = await fetchRecentBankEmails(gmail, query);
         console.log(`[cron/gmail-sync] Fetched ${messages.length} recent messages`);
 
+        console.log("[cron/gmail-sync] Loading dynamic email patterns from database...");
+        const dynamicPatterns = await prisma.emailPattern.findMany();
+
         const templatedTransactions: Array<{
           msgId: string;
           merchant: string;
@@ -163,10 +166,16 @@ export async function GET(req: Request) {
 
           // Test email against local templates
           console.log("[cron/gmail-sync] Testing against local templates...");
-          const subjectHeader = fullMsg.payload ? (fullMsg.payload.headers.find(h => h.name?.toLowerCase() === "subject")?.value || "") : "";
-          const localParsed = matchLocalTemplate(subjectHeader, emailText);
+          const subjectHeader = fullMsg.payload?.headers?.find(h => h.name?.toLowerCase() === "subject")?.value || "";
+          
+          let localParsed = matchLocalTemplate(subjectHeader, emailText);
+          if (!localParsed) {
+            const senderPatterns = dynamicPatterns.filter(p => p.sender === senderEmail);
+            localParsed = matchDynamicPatterns(subjectHeader, emailText, senderPatterns);
+          }
+
           if (localParsed && !isNaN(localParsed.amount) && localParsed.amount > 0 && !isNaN(localParsed.date.getTime())) {
-            console.log(`[cron/gmail-sync] Message ${msg.id} matched a local template:`, localParsed);
+            console.log(`[cron/gmail-sync] Message ${msg.id} matched a template (static or dynamic):`, localParsed);
             templatedTransactions.push({
               msgId: msg.id,
               ...localParsed,
@@ -188,6 +197,14 @@ export async function GET(req: Request) {
                 type: Type.STRING,
                 enum: ["Makan dan Minum", "Jajan", "Bensin", "Belanja", "Lainnya"],
                 description: "The most appropriate category for this transaction expense"
+              },
+              generatedSubjectRegex: {
+                type: Type.STRING,
+                description: "A JavaScript regex string matching this email subject"
+              },
+              generatedBodyRegex: {
+                type: Type.STRING,
+                description: "A JavaScript regex string matching this email body text structure, containing named capture groups (?<merchant>...), (?<amount>...), (?<date>...)"
               }
             },
             required: ["isTransaction", "amount", "merchant", "date", "category"],
@@ -198,7 +215,19 @@ export async function GET(req: Request) {
             console.log("[cron/gmail-sync] Calling Gemini API...");
             response = await ai.models.generateContent({
               model: "gemini-2.5-flash",
-              contents: `Extract the transaction details from this email text:\n\n${emailText}`,
+              contents: `Extract the transaction details from this email text, and compile JavaScript RegExp patterns matching the email format.
+
+The email subject was: "${subjectHeader}".
+
+For the "generatedSubjectRegex", return a simple, literal regular expression string that matches this email's subject line (e.g. "Pembayaran Berhasil!").
+For the "generatedBodyRegex", return a regular expression string that matches the email's body text structure and contains EXACTLY three named capturing groups:
+1. (?<merchant>...) to extract the merchant/sender name.
+2. (?<amount>...) to extract the transaction amount value (digits, commas, or dots).
+3. (?<date>...) to extract the transaction date string.
+
+Ensure the regular expressions are clean, valid, and escape any special characters. Avoid using unnecessary wildcards. Make them generalized enough to handle variable merchant names, dates, and amounts, but specific enough to only match this type of transaction email.
+
+Email text to parse:\n\n${emailText}`,
               config: {
                 responseMimeType: "application/json",
                 responseSchema: schema,
@@ -259,6 +288,38 @@ export async function GET(req: Request) {
                   })
                 ]);
                 console.log("[cron/gmail-sync] Transaction saved and email marked as processed successfully");
+
+                // Save dynamic regex pattern if compiled by Gemini
+                if (extracted.generatedSubjectRegex && extracted.generatedBodyRegex) {
+                  try {
+                    const patternExists = await prisma.emailPattern.findFirst({
+                      where: {
+                        sender: senderEmail,
+                        subjectPattern: extracted.generatedSubjectRegex,
+                        bodyPattern: extracted.generatedBodyRegex
+                      }
+                    });
+                    if (!patternExists) {
+                      console.log(`[cron/gmail-sync] Saving new dynamic regex pattern for sender ${senderEmail}...`);
+                      await prisma.emailPattern.create({
+                        data: {
+                          sender: senderEmail,
+                          subjectPattern: extracted.generatedSubjectRegex,
+                          bodyPattern: extracted.generatedBodyRegex
+                        }
+                      });
+                      dynamicPatterns.push({
+                        id: "",
+                        sender: senderEmail,
+                        subjectPattern: extracted.generatedSubjectRegex,
+                        bodyPattern: extracted.generatedBodyRegex,
+                        createdAt: new Date()
+                      });
+                    }
+                  } catch (patternErr) {
+                    console.error("[cron/gmail-sync] Failed to save dynamic regex pattern:", patternErr);
+                  }
+                }
 
                 processedCount++;
               } else {
