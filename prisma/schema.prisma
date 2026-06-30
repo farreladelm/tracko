@@ -161,3 +161,11 @@ model ProcessedEmail {
 
   @@unique([userId, messageId])
 }
+
+model EmailPattern {
+  id             String   @id @default(cuid())
+  sender         String
+  subjectPattern String
+  bodyPattern    String
+  createdAt      DateTime @default(now())
+}

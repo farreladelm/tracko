@@ -80,3 +80,38 @@ export function matchLocalTemplate(subject: string, bodyText: string): LocalPars
 
   return null;
 }
+
+export function matchDynamicPatterns(
+  subject: string, 
+  bodyText: string, 
+  patterns: Array<{ subjectPattern: string; bodyPattern: string }>
+): LocalParseResult | null {
+  const cleanSubject = subject.trim();
+  const cleanBody = bodyText.replace(/\s+/g, " ");
+
+  for (const pat of patterns) {
+    try {
+      const subjectRegex = new RegExp(pat.subjectPattern, "i");
+      if (!subjectRegex.test(cleanSubject)) continue;
+
+      const bodyRegex = new RegExp(pat.bodyPattern, "i");
+      const match = cleanBody.match(bodyRegex);
+
+      if (match && match.groups) {
+        const merchant = match.groups.merchant?.trim();
+        const amountStr = match.groups.amount;
+        const dateStr = match.groups.date?.trim();
+
+        if (merchant && amountStr && dateStr) {
+          const amount = parseIndonesianAmount(amountStr);
+          const date = parseIndonesianDate(dateStr);
+          return { merchant, amount, date };
+        }
+      }
+    } catch (err) {
+      console.error("[gmail-templates] Error executing dynamic regex template:", err);
+    }
+  }
+
+  return null;
+}
